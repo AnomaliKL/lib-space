@@ -24,9 +24,11 @@ RUN sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - \
     && apt-get install -y nodejs
 
-# 🔥 PERBAIKAN KRUSIAL: Matikan MPM Event/Worker penyusup agar tidak bentrok
-RUN a2dismod mpm_event || true \
-    && a2dismod mpm_worker || true \
+# 🔥 TRID FINAL: Hapus paksa file load mpm_event dan mpm_worker dari sistem agar tidak bisa dimuat sama sekali
+RUN rm -f /etc/apache2/mods-enabled/mpm_event.load \
+    && rm -f /etc/apache2/mods-enabled/mpm_worker.load \
+    && rm -f /etc/apache2/mods-available/mpm_event.load \
+    && rm -f /etc/apache2/mods-available/mpm_worker.load \
     && a2enmod mpm_prefork || true
 
 # 5. Instal Composer
