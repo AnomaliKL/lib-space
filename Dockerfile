@@ -31,6 +31,6 @@ COPY . .
 RUN composer install --no-dev --optimize-autoloader
 
 # Atur permissions folder storage dan cache agar bisa ditulis oleh Apache
-RUN chown -r www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
+RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
 
 EXPOSE 80
