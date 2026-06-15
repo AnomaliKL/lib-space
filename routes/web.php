@@ -18,6 +18,7 @@ Route::prefix('admin')->group(function () {
     Route::post('/katalog', [BookController::class, 'store'])->name('admin.katalog.store');
     Route::put('/katalog/{id}', [BookController::class, 'update'])->name('admin.katalog.update');
     Route::delete('/katalog/{id}', [BookController::class, 'destroy'])->name('admin.katalog.destroy');
+    Route::post('/admin/katalog/kategori', [BookController::class, 'storeCategory'])->name('admin.kategori.store');
 
     // UBAH JALUR PEMINJAMAN MENJADI STRUKTUR INI
     Route::get('/peminjaman', [BorrowingController::class, 'index']);
@@ -30,6 +31,7 @@ Route::prefix('admin')->group(function () {
     Route::post('/anggota', [MemberController::class, 'store'])->name('admin.anggota.store');
     Route::put('/anggota/{id}', [MemberController::class, 'update'])->name('admin.anggota.update');
     Route::delete('/anggota/{id}', [MemberController::class, 'destroy'])->name('admin.anggota.destroy');
+
 });
 
 Route::get('/', function () {

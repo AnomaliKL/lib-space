@@ -8,18 +8,17 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('books', function (Blueprint $table) {
+        Schema::create('book_category', function (Blueprint $table) {
             $table->id();
-            $table->string('title');
-            $table->string('author');
-            // HAPUS ATAU PASTIKAN TIDAK ADA BARIS FOREIGNID CATEGORY_ID DI SINI!
-            $table->integer('stock')->default(0);
+            // Menghubungkan ke tabel books dan categories
+            $table->foreignId('book_id')->constrained()->onDelete('cascade');
+            $table->foreignId('category_id')->constrained()->onDelete('cascade');
             $table->timestamps();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('books');
+        Schema::dropIfExists('book_category');
     }
 };
