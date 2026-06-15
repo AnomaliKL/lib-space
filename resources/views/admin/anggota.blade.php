@@ -3,10 +3,17 @@
 @section('title', 'Data Anggota - LibSpace')
 
 @section('content')
-<!-- Inisialisasi State Global Alpine.js untuk menghidupkan Modal CRUD -->
-<div class="space-y-6" x-data="{ openAddModal: false, openEditModal: false, openDeleteModal: false, currentMember: {id: '', member_code: '', name: '', email: '', status: 'Active'}, deleteUrl: '' }">
+<div class="space-y-6" x-data="{ 
+    openAddModal: false, 
+    openEditModal: false, 
+    openDeleteModal: false, 
+    openToggleModal: false,
+    currentMember: {id: '', member_code: '', name: '', email: '', status: 'Active'}, 
+    deleteUrl: '',
+    toggleUrl: '',
+    toggleActionText: ''
+}">
     
-    <!-- NOTIFIKASI SUKSES -->
     @if(session('success'))
         <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-xl shadow-sm flex justify-between items-center text-sm text-green-700 animate-fade-in">
             <span>{{ session('success') }}</span>
@@ -14,7 +21,6 @@
         </div>
     @endif
 
-    <!-- HEADER & TOMBOL ADD -->
     <div class="flex justify-between items-center">
         <div>
             <h1 class="text-2xl font-bold text-gray-800">Data Master Anggota</h1>
@@ -25,7 +31,6 @@
         </button>
     </div>
 
-    <!-- TABEL UTAMA DATA ANGGOTA -->
     <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-left border-collapse">
@@ -53,12 +58,22 @@
                         </td>
                         <td class="py-4 px-6">
                             <div class="flex items-center justify-center space-x-2">
-                                <button @click="currentMember = {id: '{{ $member->id }}', member_code: '{{ $member->member_code }}', name: '{{ $member->name }}', email: '{{ $member->email }}', status: '{{ $member->status }}'}; openEditModal = true" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded shadow transition">
-                                    Edit
-                                </button>
-                                <button @click="deleteUrl = '/admin/anggota/{{ $member->id }}'; openDeleteModal = true" class="px-3 py-1.5 bg-white text-red-600 border border-red-100 hover:bg-red-50 text-xs font-semibold rounded transition">
-                                    Hapus
-                                </button>
+                                @if($member->status === 'Active')
+                                    <button @click="currentMember = {id: '{{ $member->id }}', member_code: '{{ $member->member_code }}', name: '{{ $member->name }}', email: '{{ $member->email }}', status: '{{ $member->status }}'}; openEditModal = true" class="px-3 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded shadow transition">
+                                        Edit
+                                    </button>
+                                    <button @click="toggleUrl = '/admin/anggota/{{ $member->id }}/toggle-status'; toggleActionText = 'Menonaktifkan'; openToggleModal = true" class="px-3 py-1.5 bg-gray-600 hover:bg-gray-700 text-white text-xs font-semibold rounded shadow transition">
+                                        Non-Aktifkan
+                                    </button>
+
+                                @else
+                                    <button @click="toggleUrl = '/admin/anggota/{{ $member->id }}/toggle-status'; toggleActionText = 'Mengaktifkan'; openToggleModal = true" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-semibold rounded shadow transition">
+                                        Aktifkan
+                                    </button>
+                                    <button @click="deleteUrl = '/admin/anggota/{{ $member->id }}'; openDeleteModal = true" class="px-3 py-1.5 bg-white text-red-600 border border-red-100 hover:bg-red-50 text-xs font-semibold rounded transition">
+                                        Hapus
+                                    </button>
+                                @endif
                             </div>
                         </td>
                     </tr>
@@ -72,15 +87,11 @@
         </div>
     </div>
 
-    <!-- ========================================== -->
-    <!-- MODAL 1: FORM TAMBAH ANGGOTA BARU -->
-    <!-- ========================================== -->
     <template x-teleport="body">
         <div x-show="openAddModal" 
              class="fixed inset-0 z-[99999] flex items-center justify-center p-4 overflow-x-hidden overflow-y-auto"
              style="display: none;">
             
-            <!-- Backdrop: Efek Transisi Blur Halus Layar Penuh -->
             <div x-show="openAddModal"
                  x-transition:enter="transition ease-out duration-300"
                  x-transition:enter-start="opacity-0"
@@ -91,7 +102,6 @@
                  class="fixed inset-0 bg-slate-900/40 backdrop-blur-md"
                  @click="openAddModal = false"></div>
 
-            <!-- Konten Box Form: Efek Slide Up & Scale Bounce -->
             <div x-show="openAddModal"
                  x-transition:enter="transition ease-out duration-300 transform"
                  x-transition:enter-start="opacity-0 scale-95 translate-y-4"
@@ -132,15 +142,11 @@
         </div>
     </template>
 
-    <!-- ========================================== -->
-    <!-- MODAL 2: FORM EDIT ANGGOTA -->
-    <!-- ========================================== -->
     <template x-teleport="body">
         <div x-show="openEditModal" 
              class="fixed inset-0 z-[99999] flex items-center justify-center p-4 overflow-x-hidden overflow-y-auto" 
              style="display: none;">
             
-            <!-- Backdrop -->
             <div x-show="openEditModal"
                  x-transition:enter="transition ease-out duration-300"
                  x-transition:enter-start="opacity-0"
@@ -151,7 +157,6 @@
                  class="fixed inset-0 bg-slate-900/40 backdrop-blur-md"
                  @click="openEditModal = false"></div>
 
-            <!-- Konten Box -->
             <div x-show="openEditModal"
                  x-transition:enter="transition ease-out duration-300 transform"
                  x-transition:enter-start="opacity-0 scale-95 translate-y-4"
@@ -181,13 +186,6 @@
                         <input type="email" name="email" x-model="currentMember.email" required class="w-full text-sm bg-gray-50 border border-gray-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700">
                     </div>
                     <div>
-                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Status Keanggotaan</label>
-                        <select name="status" x-model="currentMember.status" class="w-full text-sm bg-gray-50 border border-gray-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700">
-                            <option value="Active">Active (Aktif)</option>
-                            <option value="Inactive">Inactive (Non-Aktif)</option>
-                        </select>
-                    </div>
-                    <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Ganti Password (Opsional)</label>
                         <input type="password" name="password" placeholder="Isi hanya jika ingin diganti..." class="w-full text-sm bg-gray-50 border border-gray-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700">
                     </div>
@@ -200,15 +198,52 @@
         </div>
     </template>
 
-    <!-- ========================================== -->
-    <!-- MODAL 3: KONFIRMASI HAPUS ANGGOTA -->
-    <!-- ========================================== -->
+    <template x-teleport="body">
+        <div x-show="openToggleModal" 
+             class="fixed inset-0 z-[99999] flex items-center justify-center p-4 overflow-x-hidden overflow-y-auto" 
+             style="display: none;">
+            
+            <div x-show="openToggleModal"
+                 x-transition:enter="transition ease-out duration-300"
+                 x-transition:enter-start="opacity-0"
+                 x-transition:enter-end="opacity-100"
+                 x-transition:leave="transition ease-in duration-200"
+                 x-transition:leave-start="opacity-100"
+                 x-transition:leave-end="opacity-0"
+                 class="fixed inset-0 bg-slate-900/40 backdrop-blur-md"
+                 @click="openToggleModal = false"></div>
+
+            <div x-show="openToggleModal"
+                 x-transition:enter="transition ease-out duration-300 transform"
+                 x-transition:enter-start="opacity-0 scale-95 translate-y-4"
+                 x-transition:enter-end="opacity-100 scale-100 translate-y-0"
+                 x-transition:leave="transition ease-in duration-200 transform"
+                 x-transition:leave-start="opacity-100 scale-100 translate-y-0"
+                 x-transition:leave-end="opacity-0 scale-95 translate-y-4"
+                 class="bg-white w-full max-w-sm rounded-2xl shadow-2xl p-6 border border-gray-100 relative z-10 text-center space-y-4 my-8">
+                
+                <div class="w-14 h-14 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center mx-auto text-2xl font-bold border border-amber-100">
+                    🔄
+                </div>
+                <div>
+                    <h3 class="text-base font-bold text-gray-800">Ubah Status Anggota?</h3>
+                    <p class="text-xs text-gray-500 mt-1">Apakah Anda yakin ingin <span class="font-semibold text-gray-700" x-text="toggleActionText.toLowerCase()"></span> anggota ini?</p>
+                </div>
+                <form :action="toggleUrl" method="POST" class="flex justify-center space-x-2 pt-4 border-t border-gray-100">
+                    @csrf
+                    @method('PATCH')
+                    <button type="button" @click="openToggleModal = false" class="px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-xl hover:bg-gray-200 transition">Batal</button>
+                    <button type="submit" class="px-4 py-2 text-sm font-semibold text-white bg-amber-500 hover:bg-amber-600 rounded-xl shadow-md transition">Ya, Ubah Status</button>
+                </form>
+            </div>
+        </div>
+    </template>
+
     <template x-teleport="body">
         <div x-show="openDeleteModal" 
              class="fixed inset-0 z-[99999] flex items-center justify-center p-4 overflow-x-hidden overflow-y-auto" 
              style="display: none;">
             
-            <!-- Backdrop -->
             <div x-show="openDeleteModal"
                  x-transition:enter="transition ease-out duration-300"
                  x-transition:enter-start="opacity-0"
@@ -219,7 +254,6 @@
                  class="fixed inset-0 bg-slate-900/40 backdrop-blur-md"
                  @click="openDeleteModal = false"></div>
 
-            <!-- Konten Box -->
             <div x-show="openDeleteModal"
                  x-transition:enter="transition ease-out duration-300 transform"
                  x-transition:enter-start="opacity-0 scale-95 translate-y-4"

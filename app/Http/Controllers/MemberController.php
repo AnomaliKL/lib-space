@@ -44,7 +44,7 @@ class MemberController extends Controller
         return redirect()->back()->with('success', 'Anggota baru berhasil ditambahkan!');
     }
 
-    // 3. UPDATE: Memperbarui data profile atau status keaktifan anggota
+    // 3. UPDATE: Memperbarui data profile anggota (Tanpa input status lagi)
     public function update(Request $request, $id)
     {
         $user = User::findOrFail($id);
@@ -53,14 +53,12 @@ class MemberController extends Controller
             'member_code' => 'required|unique:users,member_code,'.$user->id,
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,'.$user->id,
-            'status' => 'required|in:Active,Inactive',
         ]);
 
         $user->update([
             'member_code' => $request->member_code,
             'name' => $request->name,
             'email' => $request->email,
-            'status' => $request->status,
         ]);
 
         // Jika admin juga mengedit password
@@ -68,15 +66,37 @@ class MemberController extends Controller
             $user->update(['password' => Hash::make($request->password)]);
         }
 
-        return redirect()->back()->with('success', 'Data anggota berhasil diperbarui!');
+        return redirect()->back()->with('success', 'Data profile anggota berhasil diperbarui!');
     }
 
-    // 4. DELETE: Menghapus keanggotaan dari sistem
+    // 🔥 NEW ACTION: Mengubah status keaktifan anggota (Toggle Active/Inactive)
+    public function toggleStatus($id)
+    {
+        $user = User::findOrFail($id);
+
+        // Balikkan status: Jika Active jadi Inactive, jika Inactive jadi Active
+        $user->status = ($user->status === 'Active') ? 'Inactive' : 'Active';
+        $user->save();
+
+        $message = $user->status === 'Active'
+            ? "Anggota bernama {$user->name} berhasil diaktifkan kembali!"
+            : "Anggota bernama {$user->name} telah dinonaktifkan!";
+
+        return redirect()->back()->with('success', $message);
+    }
+
+    // 4. DELETE: Menghapus keanggotaan dari sistem (Hanya jika berstatus Inactive)
     public function destroy($id)
     {
         $user = User::findOrFail($id);
+
+        // Keamanan Tambahan: Mencegah penghapusan jika user masih aktif
+        if ($user->status === 'Active') {
+            return redirect()->back()->with('error', 'Gagal! Anggota harus dinonaktifkan terlebih dahulu sebelum dihapus.');
+        }
+
         $user->delete();
 
-        return redirect()->back()->with('success', 'Anggota berhasil dihapus dari sistem!');
+        return redirect()->back()->with('success', 'Anggota berhasil dihapus permanen dari sistem!');
     }
 }
