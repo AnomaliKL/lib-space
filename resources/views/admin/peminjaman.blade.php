@@ -3,7 +3,7 @@
 @section('title', 'Sirkulasi Peminjaman - LibSpace')
 
 @section('content')
-<div class="space-y-6" x-data="{ tab: '{{ session('active_tab') ?? 'langsung' }}' }">
+<div class="space-y-6" x-data="{ tab: '{{ session('active_tab') ?? 'langsung' }}', searchQuery: '', sortBy: 'terbaru' }">
     
     @if(session('success'))
         <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-xl shadow-sm flex justify-between items-center text-sm text-green-700 animate-fade-in">
@@ -53,6 +53,28 @@
         </div>
     </div>
 
+    <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col sm:flex-row gap-4">
+        <div class="flex-1 relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 select-none">🔍</span>
+            <input 
+                type="text" 
+                x-model="searchQuery" 
+                placeholder="Cari berdasarkan nama mahasiswa, kode anggota, atau judul buku..." 
+                class="w-full pl-10 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700 transition"
+            >
+        </div>
+        <div class="w-full sm:w-64 flex items-center space-x-2">
+            <label class="text-xs font-semibold text-gray-400 uppercase whitespace-nowrap">Urutkan:</label>
+            <select 
+                x-model="sortBy" 
+                class="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700 transition"
+            >
+                <option value="terbaru">Tenggat Terlama (Default)</option>
+                <option value="terdekat">Mendekati Tenggat</option>
+            </select>
+        </div>
+    </div>
+
     <div x-show="tab === 'langsung'" x-transition.opacity.duration.200ms class="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start" style="display: none;">
         
         <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 lg:col-span-1">
@@ -75,7 +97,6 @@
                     }
                 }" class="relative" @click.away="open = false">
                     <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Cari Anggota / Mahasiswa</label>
-                    
                     <div class="relative">
                         <input type="text" 
                                x-model="search" 
@@ -85,9 +106,7 @@
                                required 
                                class="w-full text-sm bg-gray-50 border border-gray-300 rounded-lg p-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-
                     <input type="hidden" name="user_id" x-model="selectedId" required>
-
                     <div x-show="open && filteredMembers.length > 0" 
                          class="absolute z-30 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
                          style="display: none;" x-transition>
@@ -116,7 +135,6 @@
                     }
                 }" class="relative" @click.away="open = false">
                     <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Cari Judul Koleksi Buku</label>
-                    
                     <div class="relative">
                         <input type="text" 
                                x-model="search" 
@@ -126,9 +144,7 @@
                                required 
                                class="w-full text-sm bg-gray-50 border border-gray-300 rounded-lg p-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
                     </div>
-
                     <input type="hidden" name="book_id" x-model="selectedId" required>
-
                     <div x-show="open && filteredBooks.length > 0" 
                          class="absolute z-20 w-full mt-1 bg-white border border-gray-200 rounded-lg shadow-lg max-h-48 overflow-y-auto"
                          style="display: none;" x-transition>
@@ -143,14 +159,14 @@
                 </div>
 
                 <div>
-    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Batas Pengembalian</label>
-    <input type="date" 
-           name="return_deadline" 
-           value="{{ date('Y-m-d', strtotime('+7 days')) }}" 
-           min="{{ date('Y-m-d', strtotime('+1 day')) }}" 
-           required 
-           class="w-full text-sm bg-gray-50 border border-gray-300 rounded-lg p-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
-</div>
+                    <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Batas Pengembalian</label>
+                    <input type="date" 
+                           name="return_deadline" 
+                           value="{{ date('Y-m-d', strtotime('+7 days')) }}" 
+                           min="{{ date('Y-m-d', strtotime('+1 day')) }}" 
+                           required 
+                           class="w-full text-sm bg-gray-50 border border-gray-300 rounded-lg p-2.5 text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                </div>
                 
                 <button type="submit" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg shadow-sm text-sm transition">
                     Simpan Sirkulasi
@@ -172,16 +188,23 @@
                             <th class="py-3.5 px-6">Batas Kembali</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100 text-gray-700">
+                    <tbody id="id-body-langsung" class="divide-y divide-gray-100 text-gray-700">
                         @forelse($borrowedList as $borrow)
-                        <tr class="hover:bg-gray-50/50 transition">
-                            <td class="py-4 px-6 font-medium text-gray-900">{{ $borrow->user->name }}</td>
+                        <tr 
+                            x-show="searchQuery === '' || '{{ strtolower($borrow->user->name) }}'.includes(searchQuery.toLowerCase()) || '{{ strtolower($borrow->user->member_code) }}'.includes(searchQuery.toLowerCase()) || '{{ strtolower($borrow->book->title) }}'.includes(searchQuery.toLowerCase())"
+                            data-due-timestamp="{{ strtotime($borrow->return_deadline) }}"
+                            class="hover:bg-gray-50/50 transition row-langsung"
+                        >
+                            <td class="py-4 px-6">
+                                <div class="font-medium text-gray-900">{{ $borrow->user->name }}</div>
+                                <span class="text-xs text-gray-400">{{ $borrow->user->member_code }}</span>
+                            </td>
                             <td class="py-4 px-6 text-gray-600">{{ $borrow->book->title }}</td>
                             <td class="py-4 px-6 text-gray-500">{{ date('d M Y', strtotime($borrow->borrow_date)) }}</td>
                             <td class="py-4 px-6 text-blue-600 font-semibold">{{ date('d M Y', strtotime($borrow->return_deadline)) }}</td>
                         </tr>
                         @empty
-                        <tr>
+                        <tr class="row-kosong">
                             <td colspan="4" class="py-6 text-center text-gray-400">Tidak ada buku fisik yang sedang dibawa luar saat ini.</td>
                         </tr>
                         @endforelse
@@ -202,7 +225,7 @@
                 </div>
                 <div>
                     <h3 class="text-sm font-bold text-amber-800">Pemberitahuan Sistem</h3>
-                    <p class="text-xs text-amber-700 mt-0.5">Sistem mendeteksi ada <span class="font-bold text-amber-900">{{ $bookingCount }} permintaan booking</span> online aktif yang diajukan mahasiswa. Tolong segera validasi kesiapan bukunya.</p>
+                    <p class="text-xs text-amber-700 mt-0.5">Sistem mendeteksi ada <span class="font-bold text-amber-900">{{ $bookingCount }} permintaan booking</span> online baru yang diajukan mahasiswa.</p>
                 </div>
             </div>
             <span class="text-[10px] font-bold text-amber-600 uppercase bg-amber-100 px-2 py-0.5 rounded-full whitespace-nowrap">Antrean</span>
@@ -219,41 +242,64 @@
                         <tr class="bg-gray-50 text-gray-500 text-xs uppercase border-b border-gray-100">
                             <th class="py-3.5 px-6">Nama Anggota</th>
                             <th class="py-3.5 px-6">Buku Yang Dibooking</th>
-                            <th class="py-3.5 px-6">Batas Ambil Fisik</th>
+                            <th class="py-3.5 px-6">Status Internal</th>
                             <th class="py-3.5 px-6 text-center">Tindakan Petugas</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-gray-100 text-gray-700">
+                    <tbody id="id-body-booking" class="divide-y divide-gray-100 text-gray-700">
                         @forelse($bookingList as $booking)
-                        <tr class="bg-amber-50/10">
+                        <tr 
+                            x-show="searchQuery === '' || '{{ strtolower($booking->user->name) }}'.includes(searchQuery.toLowerCase()) || '{{ strtolower($booking->user->member_code) }}'.includes(searchQuery.toLowerCase()) || '{{ strtolower($booking->book->title) }}'.includes(searchQuery.toLowerCase())"
+                            data-due-timestamp="{{ strtotime($booking->return_deadline) }}"
+                            class="bg-amber-50/10 row-booking"
+                        >
                             <td class="py-4 px-6">
                                 <div class="font-medium text-gray-900">{{ $booking->user->name }}</div>
                                 <span class="text-xs text-gray-400">{{ $booking->user->member_code }}</span>
                             </td>
                             <td class="py-4 px-6 text-gray-600 font-medium">{{ $booking->book->title }}</td>
-                            <td class="py-4 px-6 text-amber-600 font-semibold">{{ date('d M Y', strtotime($booking->return_deadline)) }}</td>
+                            <td class="py-4 px-6">
+                                @if($booking->status === 'Booking')
+                                    <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-amber-50 text-amber-700 border border-amber-100">Menunggu Validasi</span>
+                                @elseif($booking->status === 'Approved')
+                                    <span class="px-2.5 py-0.5 text-xs font-semibold rounded-full bg-blue-50 text-blue-700 border border-blue-100">Siap Diambil</span>
+                                @endif
+                            </td>
                             <td class="py-4 px-6">
                                 <div class="flex items-center justify-center space-x-2">
-                                    <form action="/admin/peminjaman/booking/{{ $booking->id }}/setuju" method="POST">
-                                        @csrf
-                                        @method('PATCH')
-                                        <button type="submit" class="px-3 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-md shadow transition">
-                                            Setujui
-                                        </button>
-                                    </form>
                                     
-                                    <form action="/admin/peminjaman/booking/{{ $booking->id }}/tolak" method="POST">
-                                        @csrf
-                                        @method('DELETE')
-                                        <button type="submit" class="px-3 py-1.5 bg-white text-red-600 border border-red-200 hover:bg-red-50 text-xs font-bold rounded-md transition">
-                                            Tolak
-                                        </button>
-                                    </form>
+                                    @if($booking->status === 'Booking')
+                                        <form action="/admin/peminjaman/booking/{{ $booking->id }}/setuju" method="POST">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-md shadow transition">
+                                                Setujui
+                                            </button>
+                                        </form>
+                                        
+                                        <form action="/admin/peminjaman/booking/{{ $booking->id }}/tolak" method="POST">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="px-3 py-1.5 bg-white text-red-600 border border-red-200 hover:bg-red-50 text-xs font-bold rounded-md transition">
+                                                Tolak
+                                            </button>
+                                        </form>
+
+                                    @elseif($booking->status === 'Approved')
+                                        <form action="/admin/peminjaman/booking/{{ $booking->id }}/ambil" method="POST">
+                                            @csrf
+                                            @method('PATCH')
+                                            <button type="submit" class="px-4 py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-md shadow transition flex items-center space-x-1">
+                                                <span>🤝 Buku Diambil</span>
+                                            </button>
+                                        </form>
+                                    @endif
+                                    
                                 </div>
                             </td>
                         </tr>
                         @empty
-                        <tr>
+                        <tr class="row-kosong">
                             <td colspan="4" class="py-6 text-center text-gray-400">Antrean pemesanan online kosong bersih.</td>
                         </tr>
                         @endforelse
@@ -262,6 +308,30 @@
             </div>
         </div>
     </div>
+
+    <div x-init="$watch('sortBy', value => {
+        let bodyLangsung = document.getElementById('id-body-langsung');
+        if(bodyLangsung) {
+            let rowsLangsung = Array.from(bodyLangsung.querySelectorAll('.row-langsung'));
+            rowsLangsung.sort((a, b) => {
+                return value === 'terdekat' 
+                    ? a.getAttribute('data-due-timestamp') - b.getAttribute('data-due-timestamp')
+                    : b.getAttribute('data-due-timestamp') - a.getAttribute('data-due-timestamp');
+            });
+            rowsLangsung.forEach(row => bodyLangsung.appendChild(row));
+        }
+
+        let bodyBooking = document.getElementById('id-body-booking');
+        if(bodyBooking) {
+            let rowsBooking = Array.from(bodyBooking.querySelectorAll('.row-booking'));
+            rowsBooking.sort((a, b) => {
+                return value === 'terdekat' 
+                    ? a.getAttribute('data-due-timestamp') - b.getAttribute('data-due-timestamp')
+                    : b.getAttribute('data-due-timestamp') - a.getAttribute('data-due-timestamp');
+            });
+            rowsBooking.forEach(row => bodyBooking.appendChild(row));
+        }
+    })"></div>
 
 </div>
 @endsection

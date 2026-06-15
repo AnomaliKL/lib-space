@@ -20,12 +20,16 @@ Route::prefix('admin')->group(function () {
     Route::post('/katalog', [BookController::class, 'store'])->name('admin.katalog.store');
     Route::put('/katalog/{id}', [BookController::class, 'update'])->name('admin.katalog.update');
     Route::delete('/katalog/{id}', [BookController::class, 'destroy'])->name('admin.katalog.destroy');
-    Route::post('/katalog/kategori', [BookController::class, 'storeCategory'])->name('admin.kategori.store'); // Diperbaiki prefix ganda /admin-nya
+    Route::post('/katalog/kategori', [BookController::class, 'storeCategory'])->name('admin.kategori.store');
 
     // Rute Sirkulasi Peminjaman & Manajemen Booking Buku
     Route::get('/peminjaman', [BorrowingController::class, 'index']);
     Route::post('/peminjaman', [BorrowingController::class, 'store'])->name('admin.peminjaman.store');
     Route::patch('/peminjaman/booking/{id}/setuju', [BorrowingController::class, 'acceptBooking'])->name('admin.peminjaman.accept');
+
+    // 🔥 ROUTE BARU: Aksi konfirmasi bahwa buku fisik telah diambil oleh mahasiswa (Approved -> Borrowed)
+    Route::patch('/peminjaman/booking/{id}/ambil', [BorrowingController::class, 'takeBook'])->name('admin.peminjaman.ambil');
+
     Route::delete('/peminjaman/booking/{id}/tolak', [BorrowingController::class, 'rejectBooking'])->name('admin.peminjaman.reject');
 
     // Rute Anggota Master (Anggota LibSpace)
@@ -34,7 +38,7 @@ Route::prefix('admin')->group(function () {
     Route::put('/anggota/{id}', [MemberController::class, 'update'])->name('admin.anggota.update');
     Route::delete('/anggota/{id}', [MemberController::class, 'destroy'])->name('admin.anggota.destroy');
 
-    // 🔥 NEW ROUTE: Aksi mengubah status aktif/non-aktif secara dinamis via patch
+    // Aksi mengubah status aktif/non-aktif secara dinamis via patch
     Route::patch('/anggota/{id}/toggle-status', [MemberController::class, 'toggleStatus'])->name('admin.anggota.toggle-status');
 
 });

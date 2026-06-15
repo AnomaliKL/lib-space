@@ -3,7 +3,17 @@
 @section('title', 'Katalog Buku - LibSpace')
 
 @section('content')
-<div class="space-y-6" x-data="{ openAddModal: false, openEditModal: false, openDeleteModal: false, openCategoryModal: false, currentBook: {id: '', title: '', author: '', cover_url: '', description: '', category_ids: [], stock: 0}, deleteUrl: '' }">
+<div class="space-y-6" 
+     x-data="{ 
+        openAddModal: false, 
+        openEditModal: false, 
+        openDeleteModal: false, 
+        openCategoryModal: false, 
+        currentBook: {id: '', title: '', author: '', cover_url: '', description: '', category_ids: [], stock: 0}, 
+        deleteUrl: '',
+        searchQuery: '',
+        selectedCategory: ''
+     }">
 
     @if(session('success'))
         <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-xl shadow-sm flex justify-between items-center text-sm text-green-700 animate-fade-in">
@@ -27,9 +37,38 @@
         </div>
     </div>
 
+    <div class="bg-white p-4 rounded-xl border border-gray-100 shadow-sm flex flex-col sm:flex-row gap-4">
+        <div class="flex-1 relative">
+            <span class="absolute inset-y-0 left-0 flex items-center pl-3 text-gray-400 select-none">🔍</span>
+            <input 
+                type="text" 
+                x-model="searchQuery" 
+                placeholder="Cari berdasarkan judul atau nama penulis..." 
+                class="w-full pl-10 pr-4 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700 transition"
+            >
+        </div>
+        <div class="w-full sm:w-64">
+            <select 
+                x-model="selectedCategory" 
+                class="w-full px-3 py-2 text-sm bg-gray-50 border border-gray-200 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700 transition"
+            >
+                <option value="">Semua Kategori</option>
+                @foreach($categories as $category)
+                    <option value="{{ $category->id }}">{{ $category->name }}</option>
+                @endforeach
+            </select>
+        </div>
+    </div>
+
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         @forelse($books as $book)
-        <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between transition duration-200 hover:shadow-md">
+        <div 
+            x-show="
+                (searchQuery === '' || '{{ strtolower($book->title) }}'.includes(searchQuery.toLowerCase()) || '{{ strtolower($book->author) }}'.includes(searchQuery.toLowerCase())) &&
+                (selectedCategory === '' || {{ json_encode($book->categories->pluck('id')) }}.includes(parseInt(selectedCategory)))
+            "
+            class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between transition duration-200 hover:shadow-md"
+        >
             <div class="p-5 space-y-4">
                 
                 @if($book->cover_url)
@@ -123,17 +162,14 @@
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Nama Penulis</label>
                         <input type="text" name="author" placeholder="Nama penulis..." required class="w-full text-sm bg-gray-50 border border-gray-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700">
                     </div>
-                    
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Upload File Gambar Cover</label>
                         <input type="file" name="cover_file" accept="image/*" class="w-full text-sm bg-gray-50 border border-gray-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                     </div>
-
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Sinopsis / Deskripsi Buku</label>
                         <textarea name="description" rows="3" placeholder="Tulis sinopsis ringkas isi buku..." class="w-full text-sm bg-gray-50 border border-gray-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700"></textarea>
                     </div>
-
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Pilih Kategori (Bisa Pilih Lebih dari Satu)</label>
                         <div class="grid grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto p-2 bg-gray-50 border border-gray-200 rounded-xl">
@@ -177,17 +213,14 @@
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Penulis</label>
                         <input type="text" name="author" x-model="currentBook.author" required class="w-full text-sm bg-gray-50 border border-gray-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700">
                     </div>
-                    
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Ganti File Gambar Cover (Biarkan kosong jika tidak diubah)</label>
                         <input type="file" name="cover_file" accept="image/*" class="w-full text-sm bg-gray-50 border border-gray-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
                     </div>
-
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Sinopsis / Deskripsi Buku</label>
                         <textarea name="description" rows="3" x-model="currentBook.description" placeholder="Tulis sinopsis ringkas..." class="w-full text-sm bg-gray-50 border border-gray-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700"></textarea>
                     </div>
-
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Kategori Buku (Multi-select)</label>
                         <div class="grid grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto p-2 bg-gray-50 border border-gray-200 rounded-xl">

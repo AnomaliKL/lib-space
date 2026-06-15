@@ -20,7 +20,7 @@ return new class extends Migration
             $table->date('return_deadline')->nullable();
             $table->date('returned_at')->nullable();
             $table->integer('fine')->default(0); // Sudah diperbaiki dari (.) menjadi (->)
-            $table->enum('status', ['Booking', 'Borrowed', 'Returned'])->default('Booking');
+            $table->enum('status', ['Booking', 'Approved', 'Borrowed', 'Returned'])->default('Booking');
             $table->timestamps();
         });
     }

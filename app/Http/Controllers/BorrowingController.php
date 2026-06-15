@@ -14,16 +14,21 @@ class BorrowingController extends Controller
     {
         // Ambil data untuk form dropdown
         $members = User::where('role', 'Member')->where('status', 'Active')->get();
+
+        // Peminjaman langsung di meja petugas hanya boleh memilih buku yang stoknya di atas 0
         $books = Book::where('stock', '>', 0)->get();
 
         // Ambil riwayat buku yang sedang dibawa mahasiswa (Status: Borrowed)
         $borrowedList = Borrowing::with(['user', 'book'])->where('status', 'Borrowed')->latest()->get();
 
-        // Ambil antrean booking mahasiswa via web yang butuh persetujuan (Status: Booking)
-        $bookingList = Borrowing::with(['user', 'book'])->where('status', 'Booking')->latest()->get();
+        // Ambil antrean booking yang berstatus 'Booking' DAN 'Approved' (Siap Diambil)
+        $bookingList = Borrowing::with(['user', 'book'])
+            ->whereIn('status', ['Booking', 'Approved'])
+            ->latest()
+            ->get();
 
-        // Hitung jumlah antrean booking aktif untuk angka badge notifikasi merah
-        $bookingCount = $bookingList->count();
+        // Hitung jumlah antrean booking yang MURNI masih 'Booking' (untuk angka badge notifikasi merah)
+        $bookingCount = Borrowing::where('status', 'Booking')->count();
 
         return view('admin.peminjaman', compact('members', 'books', 'borrowedList', 'bookingList', 'bookingCount'));
     }
@@ -39,12 +44,10 @@ class BorrowingController extends Controller
 
         $book = Book::findOrFail($request->book_id);
 
-        // Validasi pengaman jika stok mendadak habis
         if ($book->stock <= 0) {
             return redirect()->back()->with('error', 'Stok fisik buku ini sedang kosong!');
         }
 
-        // Catat transaksi
         Borrowing::create([
             'user_id' => $request->user_id,
             'book_id' => $request->book_id,
@@ -53,61 +56,79 @@ class BorrowingController extends Controller
             'status' => 'Borrowed',
         ]);
 
-        // Kurangi stok buku
+        // Potong stok karena dipinjam langsung di tempat
         $book->decrement('stock');
 
         return redirect()->back()->with('success', 'Sirkulasi peminjaman langsung berhasil disimpan!');
     }
 
-    // 3. UPDATE: Menyetujui Booking Online (Berubah dari Booking -> Borrowed)
+    // 3. UPDATE: Menyetujui Booking Online (Booking -> Approved)
     public function acceptBooking($id)
     {
         $borrowing = Borrowing::findOrFail($id);
         $book = Book::findOrFail($borrowing->book_id);
 
+        // Validasi pengaman: pastikan saat disetujui, buku masih ada stoknya
         if ($book->stock <= 0) {
             return redirect()->back()->with('error', 'Gagal menyetujui, stok fisik buku habis!');
         }
 
-        // Ubah status dan isi tanggal pinjam awal jadi hari ini
+        // Ubah status ke Approved (Beluam memotong stok & belum ada borrow_date)
+        $borrowing->update([
+            'status' => 'Approved',
+        ]);
+
+        return redirect()->back()->with('success', 'Permintaan booking online berhasil disetujui! Menunggu mahasiswa mengambil buku.');
+    }
+
+    // 3.5. UPDATE (FUNGSI BARU): Mengubah status dari Approved -> Borrowed (Buku Diambil Fisik)
+    public function takeBook($id)
+    {
+        $borrowing = Borrowing::findOrFail($id);
+        $book = Book::findOrFail($borrowing->book_id);
+
+        // Validasi double check stok fisik sebelum benar-benar dibawa pulang
+        if ($book->stock <= 0) {
+            return redirect()->back()->with('error', 'Gagal memproses, stok fisik buku mendadak habis!');
+        }
+
+        // Sekarang isi tanggal pinjam resmi hari ini dan kunci durasi kembali 7 hari
         $borrowing->update([
             'borrow_date' => now()->toDateString(),
-            'return_deadline' => now()->addDays(7)->toDateString(), // Otomatis durasi pinjam 7 hari
+            'return_deadline' => now()->addDays(7)->toDateString(),
             'status' => 'Borrowed',
         ]);
 
-        // Kurangi stok fisik buku
+        // Stok baru resmi berkurang saat buku fisik diambil
         $book->decrement('stock');
 
-        return redirect()->back()->with('success', 'Booking online mahasiswa berhasil disetujui! Buku siap diambil.');
+        return redirect()->back()->with('with_tab', 'booking')->with('success', 'Konfirmasi sukses! Buku telah diambil oleh mahasiswa.');
     }
 
     // 4. DELETE: Tolak / Batalkan Permintaan Booking Online
     public function rejectBooking($id)
     {
         $borrowing = Borrowing::findOrFail($id);
-        $borrowing->delete(); // Hapus antrean booking dari log
+        $borrowing->delete();
 
-        return redirect()->back()->with('success', 'Permintaan booking online berhasil ditolak dan dibersihkan.');
+        return redirect()->back()->with('with_tab', 'booking')->with('success', 'Permintaan booking online berhasil ditolak dan dibersihkan.');
     }
 
     // 5. READ: Menampilkan halaman sirkulasi pengembalian buku
     public function returnIndex()
     {
-        // Tarik data transaksi yang Sedang Dipinjam (Borrowed) dan Sudah Kembali (Returned)
         $transactions = Borrowing::with(['user', 'book'])
             ->whereIn('status', ['Borrowed', 'Returned'])
             ->latest()
             ->get();
 
-        // Hitung denda berjalan secara real-time untuk buku yang belum dikembalikan
         foreach ($transactions as $trans) {
             if ($trans->status === 'Borrowed' && now()->startOfDay() > date($trans->return_deadline)) {
                 $statusDeadline = now()->startOfDay()->diffInDays(date($trans->return_deadline));
-                $trans->calculated_fine = $statusDeadline * 2000; // Tarif denda Rp 2.000 / hari
+                $trans->calculated_fine = $statusDeadline * 2000; // Denda Rp 2.000 / hari
                 $trans->days_late = $statusDeadline;
             } else {
-                $trans->calculated_fine = $trans->fine; // Gunakan denda permanen jika sudah selesai
+                $trans->calculated_fine = $trans->fine;
                 $trans->days_late = 0;
             }
         }
@@ -121,21 +142,18 @@ class BorrowingController extends Controller
         $borrowing = Borrowing::findOrFail($id);
         $book = Book::findOrFail($borrowing->book_id);
 
-        // Jika telat, kunci nominal denda berjalan saat tombol diklik ke dalam database
         $fineAmount = 0;
         if (now()->startOfDay() > date($borrowing->return_deadline)) {
             $daysLate = now()->startOfDay()->diffInDays(date($borrowing->return_deadline));
             $fineAmount = $daysLate * 2000;
         }
 
-        // Perbarui status transaksi
         $borrowing->update([
             'returned_at' => now()->toDateString(),
             'fine' => $fineAmount,
             'status' => 'Returned',
         ]);
 
-        // Kembalikan jumlah stok fisik buku ke rak (+1)
         $book->increment('stock');
 
         return redirect()->back()->with('success', 'Buku berhasil dikembalikan! Stok rak telah diperbarui.');
