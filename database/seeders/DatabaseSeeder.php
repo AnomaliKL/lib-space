@@ -58,10 +58,12 @@ class DatabaseSeeder extends Seeder
             'slug' => Str::slug('Database'),
         ]);
 
-        // 3. DATA DUMMY BUKU (TANPA COLUMN category_id)
+        // 3. DATA DUMMY BUKU (PROPERTI COVER & DESKRIPSI DI TABEL BUKU)
         $book1 = Book::create([
             'title' => 'Belajar Laravel 11 Pemula sampai Mahir',
             'author' => 'Ahmad Fauzi',
+            'cover_url' => 'https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?w=500&auto=format&fit=crop',
+            'description' => 'Panduan lengkap membangun aplikasi web modern berskala enterprise menggunakan framework Laravel 11, mencakup Eloquent ORM, Blade, hingga arsitektur API.',
             'stock' => 3,
         ]);
         // Menghubungkan book1 ke kategori Framework via Tabel Pivot
@@ -70,6 +72,8 @@ class DatabaseSeeder extends Seeder
         $book2 = Book::create([
             'title' => 'Mastering React & Tailwind CSS',
             'author' => 'Siti Rahma',
+            'cover_url' => 'https://images.unsplash.com/photo-1633356122544-f134324a6cee?w=500&auto=format&fit=crop',
+            'description' => 'Kombinasi terbaik untuk frontend developer. Pelajari bagaimana membangun antarmuka komponen React yang reaktif dengan keindahan utility-first CSS dari Tailwind.',
             'stock' => 2,
         ]);
         // Menghubungkan book2 ke dua kategori sekaligus (Frontend & Framework)
@@ -78,6 +82,8 @@ class DatabaseSeeder extends Seeder
         $book3 = Book::create([
             'title' => 'SQL & PostgreSQL Fundamentals',
             'author' => 'Rian Hidayat',
+            'cover_url' => 'https://images.unsplash.com/photo-1544383835-bda2bc66a55d?w=500&auto=format&fit=crop',
+            'description' => 'Kuasai konsep dasar database relasional, perancangan tabel ter-normalisasi, hingga optimasi query kompleks menggunakan PostgreSQL.',
             'stock' => 0,
         ]);
         // Menghubungkan book3 ke kategori Database

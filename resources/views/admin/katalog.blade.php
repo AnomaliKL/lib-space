@@ -3,7 +3,7 @@
 @section('title', 'Katalog Buku - LibSpace')
 
 @section('content')
-<div class="space-y-6" x-data="{ openAddModal: false, openEditModal: false, openDeleteModal: false, openCategoryModal: false, currentBook: {id: '', title: '', author: '', category_ids: [], stock: 0}, deleteUrl: '' }">
+<div class="space-y-6" x-data="{ openAddModal: false, openEditModal: false, openDeleteModal: false, openCategoryModal: false, currentBook: {id: '', title: '', author: '', cover_url: '', description: '', category_ids: [], stock: 0}, deleteUrl: '' }">
 
     @if(session('success'))
         <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded-xl shadow-sm flex justify-between items-center text-sm text-green-700 animate-fade-in">
@@ -32,9 +32,15 @@
         <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden flex flex-col justify-between transition duration-200 hover:shadow-md">
             <div class="p-5 space-y-4">
                 
-                <div class="h-40 rounded-lg flex items-center justify-center p-4 text-center select-none bg-gradient-to-br from-slate-700 to-slate-900">
-                    <span class="text-white font-bold text-lg tracking-wide shadow-sm">{{ $book->title }}</span>
-                </div>
+                @if($book->cover_url)
+                    <div class="h-48 w-full rounded-lg overflow-hidden border border-gray-100 shadow-inner">
+                        <img src="{{ Str::startsWith($book->cover_url, 'http') ? $book->cover_url : asset('storage/' . $book->cover_url) }}" alt="{{ $book->title }}" class="w-full h-full object-cover">
+                    </div>
+                @else
+                    <div class="h-48 rounded-lg flex items-center justify-center p-4 text-center select-none bg-gradient-to-br from-slate-700 to-slate-900">
+                        <span class="text-white font-bold text-lg tracking-wide shadow-sm">{{ $book->title }}</span>
+                    </div>
+                @endif
                 
                 <div class="space-y-2">
                     <div class="flex flex-wrap gap-1.5">
@@ -44,8 +50,11 @@
                             </span>
                         @endforeach
                     </div>
-                    <h3 class="text-lg font-bold text-gray-800 mt-2 line-clamp-1"> {{$book->title}}</h3>
+                    <h3 class="text-lg font-bold text-gray-800 mt-2 line-clamp-1">{{ $book->title }}</h3>
                     <p class="text-xs text-gray-400">Oleh: <span class="font-medium text-gray-600">{{ $book->author }}</span></p>
+                    <p class="text-xs text-gray-500 line-clamp-2 leading-relaxed bg-gray-50 p-2 rounded-lg mt-2 italic">
+                        {{ $book->description ?? 'Tidak ada deskripsi singkat untuk buku ini.' }}
+                    </p>
                 </div>
             </div>
             
@@ -57,7 +66,7 @@
                 @endif
                 
                 <div class="flex space-x-1.5">
-                    <button @click="currentBook = {id: '{{ $book->id }}', title: '{{ $book->title }}', author: '{{ $book->author }}', category_ids: {{ json_encode($book->categories->pluck('id')) }}, stock: '{{ $book->stock }}'}; openEditModal = true" class="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded transition shadow-sm">
+                    <button @click="currentBook = {id: '{{ $book->id }}', title: '{{ $book->title }}', author: '{{ $book->author }}', cover_url: '{{ $book->cover_url }}', description: '{{ $book->description }}', category_ids: {{ json_encode($book->categories->pluck('id')) }}, stock: '{{ $book->stock }}'}; openEditModal = true" class="px-2.5 py-1.5 bg-amber-500 hover:bg-amber-600 text-white text-xs font-semibold rounded transition shadow-sm">
                         Edit
                     </button>
                     <button @click="deleteUrl = '/admin/katalog/{{ $book->id }}'; openDeleteModal = true" class="px-2.5 py-1.5 bg-white text-red-600 border border-gray-200 hover:bg-red-50 text-xs font-semibold rounded transition">
@@ -104,7 +113,7 @@
                     <h3 class="text-base font-bold text-gray-800">Tambah Koleksi Buku Baru</h3>
                     <button @click="openAddModal = false" class="text-gray-400 hover:text-gray-600 text-2xl">&times;</button>
                 </div>
-                <form action="{{ route('admin.katalog.store') }}" method="POST" class="p-6 space-y-4">
+                <form action="{{ route('admin.katalog.store') }}" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
                     @csrf
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Judul Lengkap Buku</label>
@@ -114,6 +123,17 @@
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Nama Penulis</label>
                         <input type="text" name="author" placeholder="Nama penulis..." required class="w-full text-sm bg-gray-50 border border-gray-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700">
                     </div>
+                    
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Upload File Gambar Cover</label>
+                        <input type="file" name="cover_file" accept="image/*" class="w-full text-sm bg-gray-50 border border-gray-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Sinopsis / Deskripsi Buku</label>
+                        <textarea name="description" rows="3" placeholder="Tulis sinopsis ringkas isi buku..." class="w-full text-sm bg-gray-50 border border-gray-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700"></textarea>
+                    </div>
+
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Pilih Kategori (Bisa Pilih Lebih dari Satu)</label>
                         <div class="grid grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto p-2 bg-gray-50 border border-gray-200 rounded-xl">
@@ -146,7 +166,7 @@
                     <h3 class="text-base font-bold text-gray-800">Edit Informasi Buku</h3>
                     <button @click="openEditModal = false" class="text-gray-400 hover:text-gray-600 text-2xl transition">&times;</button>
                 </div>
-                <form :action="'/admin/katalog/' + currentBook.id" method="POST" class="p-6 space-y-4">
+                <form :action="'/admin/katalog/' + currentBook.id" method="POST" enctype="multipart/form-data" class="p-6 space-y-4">
                     @csrf
                     @method('PUT')
                     <div>
@@ -157,6 +177,17 @@
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Penulis</label>
                         <input type="text" name="author" x-model="currentBook.author" required class="w-full text-sm bg-gray-50 border border-gray-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700">
                     </div>
+                    
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Ganti File Gambar Cover (Biarkan kosong jika tidak diubah)</label>
+                        <input type="file" name="cover_file" accept="image/*" class="w-full text-sm bg-gray-50 border border-gray-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700 file:mr-4 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100">
+                    </div>
+
+                    <div>
+                        <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Sinopsis / Deskripsi Buku</label>
+                        <textarea name="description" rows="3" x-model="currentBook.description" placeholder="Tulis sinopsis ringkas..." class="w-full text-sm bg-gray-50 border border-gray-300 rounded-xl p-2.5 focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-700"></textarea>
+                    </div>
+
                     <div>
                         <label class="block text-xs font-semibold text-gray-500 uppercase mb-1">Kategori Buku (Multi-select)</label>
                         <div class="grid grid-cols-2 gap-2 mt-2 max-h-32 overflow-y-auto p-2 bg-gray-50 border border-gray-200 rounded-xl">
