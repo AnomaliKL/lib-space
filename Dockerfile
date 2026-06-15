@@ -35,4 +35,5 @@ RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cac
 EXPOSE 80
 
 # 🔥 KUNCI UTAMA: Jalankan Laravel secara mandiri via Artisan Server di port 80
-CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=80"]
+# CMD ["php", "artisan", "serve", "--host=0.0.0.0", "--port=80"]
+CMD php artisan optimize && php artisan storage:link && php artisan serve --host=0.0.0.0 --port=80
