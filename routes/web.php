@@ -1,14 +1,28 @@
 <?php
 
+use App\Http\Controllers\AuthController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\BorrowingController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\Member\MemberController as MemberSpaceController;
 use App\Http\Controllers\MemberController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('admin')->group(function () {
+// ==========================================
+// RUTE OTENTIKASI (GUEST - Hanya bisa diakses jika belum login)
+// ==========================================
+Route::middleware('guest')->group(function () {
+    Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])->name('login.proses');
+});
 
-    // Rute Dashboard Utama
+// Rute logout bisa diakses kapan saja asal sudah login
+Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth');
+
+// ==========================================
+// AREA PETUGAS ADMIN (Wajib Login & Status Aktif)
+// ==========================================
+Route::prefix('admin')->middleware('auth')->group(function () {
     Route::get('/', [DashboardController::class, 'index']);
 
     // Rute Sirkulasi Pengembalian Buku
@@ -26,23 +40,31 @@ Route::prefix('admin')->group(function () {
     Route::get('/peminjaman', [BorrowingController::class, 'index']);
     Route::post('/peminjaman', [BorrowingController::class, 'store'])->name('admin.peminjaman.store');
     Route::patch('/peminjaman/booking/{id}/setuju', [BorrowingController::class, 'acceptBooking'])->name('admin.peminjaman.accept');
-
-    // 🔥 ROUTE BARU: Aksi konfirmasi bahwa buku fisik telah diambil oleh mahasiswa (Approved -> Borrowed)
     Route::patch('/peminjaman/booking/{id}/ambil', [BorrowingController::class, 'takeBook'])->name('admin.peminjaman.ambil');
-
     Route::delete('/peminjaman/booking/{id}/tolak', [BorrowingController::class, 'rejectBooking'])->name('admin.peminjaman.reject');
 
-    // Rute Anggota Master (Anggota LibSpace)
+    // Rute Anggota Master (Manajemen Data Anggota oleh Admin)
     Route::get('/anggota', [MemberController::class, 'index']);
     Route::post('/anggota', [MemberController::class, 'store'])->name('admin.anggota.store');
     Route::put('/anggota/{id}', [MemberController::class, 'update'])->name('admin.anggota.update');
     Route::delete('/anggota/{id}', [MemberController::class, 'destroy'])->name('admin.anggota.destroy');
-
-    // Aksi mengubah status aktif/non-aktif secara dinamis via patch
     Route::patch('/anggota/{id}/toggle-status', [MemberController::class, 'toggleStatus'])->name('admin.anggota.toggle-status');
-
 });
 
+// ==========================================
+// AREA ANGGOTA / MAHASISWA (Wajib Login)
+// ==========================================
+Route::prefix('member')->middleware('auth')->group(function () {
+    Route::get('/', function () {
+        return redirect()->route('member.dashboard');
+    });
+
+    Route::get('/dashboard', [MemberSpaceController::class, 'index'])->name('member.dashboard');
+    Route::post('/booking', [MemberSpaceController::class, 'storeBooking'])->name('member.booking.store');
+    Route::get('/riwayat', [MemberSpaceController::class, 'history'])->name('member.history');
+});
+
+// Redirect root website utama
 Route::get('/', function () {
-    return redirect('/admin');
+    return redirect()->route('login');
 });

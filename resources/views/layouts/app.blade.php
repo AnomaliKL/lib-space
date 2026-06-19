@@ -13,7 +13,7 @@
 
     <div class="flex-1 flex flex-col h-full overflow-hidden">
         
-        @include('components.navbar')
+        {{-- @include('components.navbar') --}}
 
         <main class="flex-1 overflow-y-auto p-6 bg-gray-50">
             @yield('content')
