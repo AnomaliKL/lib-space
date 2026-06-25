@@ -40,5 +40,5 @@ Ikuti langkah-langkah berikut untuk memasang proyek LibSpace di lingkungan lokal
 
 ### 1. Klon Repositori
 ```bash
-git clone [https://github.com/username/libspace.git](https://github.com/username/libspace.git)
+git clone [https://github.com/AnomaliKL/libspace.git](https://github.com/AnomaliKL/libspace.git)
 cd libspace
